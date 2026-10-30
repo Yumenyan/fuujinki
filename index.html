@@ -2,6 +2,7 @@
 <html lang="ja">
 
 <head>
+  <script>(function () { try { var c = matchMedia('(hover:none) and (pointer:coarse)').matches || (navigator.maxTouchPoints > 1 && /Macintosh|iPad|iPhone/.test(navigator.userAgent)); if (c) document.documentElement.classList.add('lite') } catch (e) { } })();</script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>風神姫プロダクション | FUUJINKI PRODUCTION</title>
@@ -211,21 +212,19 @@
       }
     }
 
-    @keyframes drift {
-      to {
-        background-position: 240px 0
-      }
-    }
-
     .page:not([hidden]) {
       animation: pageIn .6s var(--ease)
     }
 
     .rv {
       opacity: 0;
-      transform: translateY(28px);
-      transition: opacity .8s var(--ease), transform .8s var(--ease);
+      transform: translateY(20px);
+      transition: opacity .6s var(--ease), transform .6s var(--ease);
       transition-delay: var(--d, 0s)
+    }
+
+    .rv.now {
+      transition: none
     }
 
     .rv.in {
@@ -305,8 +304,7 @@
       position: absolute;
       inset: 0;
       background-image: var(--pat-red);
-      pointer-events: none;
-      animation: drift 40s linear infinite
+      pointer-events: none
     }
 
     .brand>* {
@@ -2827,6 +2825,96 @@
       }
     }
 
+    /* ---------- タブレット／タッチ端末：スクロール負荷を下げる軽量モード ---------- */
+    html.lite {
+      scroll-behavior: auto
+    }
+
+    html.lite .page:not([hidden]) {
+      animation: none
+    }
+
+    html.lite .rv {
+      transform: none;
+      transition: opacity .3s ease;
+      transition-delay: 0s
+    }
+
+    html.lite .rv .bar i {
+      transition: none;
+      transform: none
+    }
+
+    html.lite .site-header,
+    html.lite .brand,
+    html.lite .brand-mark,
+    html.lite .brand-t b,
+    html.lite .brand-t span,
+    html.lite .gnav {
+      transition: none
+    }
+
+    html.lite .site-header.bg {
+      background: var(--cream)
+    }
+
+    html.lite .hero-emblem .ring,
+    html.lite .hero-emblem .core,
+    html.lite .nd-vis svg {
+      animation: none
+    }
+
+    html.lite .mq-track {
+      animation: none
+    }
+
+    html.lite .marquee {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch
+    }
+
+    html.lite .mq-item[aria-hidden] {
+      display: none
+    }
+
+    html.lite .chart * {
+      animation: none !important
+    }
+
+    html.lite .ln {
+      stroke-dashoffset: 0
+    }
+
+    html.lite .abil .bar i,
+    html.lite .pick-ab .bar i {
+      animation: none
+    }
+
+    html.lite .h.rv:not(.in) .seal {
+      opacity: 1
+    }
+
+    html.lite .h.in .seal,
+    html.lite .bd-today .seal {
+      animation: none
+    }
+
+    html.lite .brand-mark path,
+    html.lite .hero-emblem .core path {
+      animation: none;
+      stroke-dashoffset: 0
+    }
+
+    html.lite .t-card,
+    html.lite .t-img img,
+    html.lite .ph,
+    html.lite .n-card,
+    html.lite .n-vis svg,
+    html.lite .n-vis img,
+    html.lite .mq-item .ph {
+      transition: none
+    }
+
     @media (prefers-reduced-motion:reduce) {
       html {
         scroll-behavior: auto
@@ -3477,11 +3565,12 @@
 
     /* ===================== 演出 ===================== */
     const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+    const LITE = document.documentElement.classList.contains('lite');
     function countable(str) {
       return String(str).replace(/^(\d+(?:\.\d+)?)(?![\d.])/, n => `<span data-count="${n}" data-dec="${(n.split('.')[1] || '').length}">${n}</span>`);
     }
     function countUpIn(root) {
-      if (REDUCED.matches || !root || document.body.classList.contains('live')) return;
+      if (REDUCED.matches || LITE || !root || document.body.classList.contains('live')) return;
       const els = root.matches && root.matches('[data-count]') ? [root] : [...root.querySelectorAll('[data-count]')];
       els.forEach(el => {
         const to = +el.dataset.count, d = +(el.dataset.dec || 0);
@@ -3492,20 +3581,22 @@
         requestAnimationFrame(step);
       });
     }
+    const REVEAL_LITE = '.h, .hero-left, .pick, .bd-today';
     const REVEAL = '.h, .sec, .t-card, .n-card, .bd-list li, .rl li, .mini-rank li, .podium li, .kpi, .tbl tbody tr, .hb li, .top3 > div, .nl li, .bd-today, .hero-left, .pick, .cal';
     let io = null;
     function reveal(root = document) {
       if (!('IntersectionObserver' in window)) { root.querySelectorAll('[data-count]').forEach(() => { }); return }
       if (!io) io = new IntersectionObserver(es => es.forEach(e => {
         if (!e.isIntersecting) return;
+        if (e.boundingClientRect.top < 0) e.target.classList.add('now');
         e.target.classList.add('in'); countUpIn(e.target); io.unobserve(e.target);
       }), { rootMargin: '0px 0px -6% 0px', threshold: .04 });
-      root.querySelectorAll(REVEAL).forEach(el => {
+      root.querySelectorAll(LITE ? REVEAL_LITE : REVEAL).forEach(el => {
         if (el.classList.contains('rv') || el.closest('dialog')) return;
         if (document.body.classList.contains('live')) { el.classList.add('rv', 'in'); return; }
         el.classList.add('rv');
         const i = [...el.parentElement.children].indexOf(el);
-        el.style.setProperty('--d', (Math.min(i % 8, 7) * 0.06).toFixed(2) + 's');
+        el.style.setProperty('--d', LITE ? '0s' : (Math.min(i % 8, 7) * 0.04).toFixed(2) + 's');
         io.observe(el);
       });
     }
@@ -3961,13 +4052,14 @@
     document.addEventListener('animationend', e => { if (e.target.matches('.pick-prog i') && currentRoute()[0] === 'top' && !dlg.open) showPick(1); });
     // ヘッダーの縮小とページトップボタン
     (() => {
-      const hdr = $('.site-header'), top = $('#totop'); let sc = false;
+      const hdr = $('.site-header'), top = $('#totop'); let sc = false, tk = false, shown = false;
+      const cls = LITE ? 'bg' : 'scrolled';   // タッチ端末ではヘッダーを縮小せず（レイアウト変更なし）背景だけ切り替える
       const on = () => {
-        const y = scrollY;
-        if (!sc && y > 90) { sc = true; hdr.classList.add('scrolled') } else if (sc && y < 20) { sc = false; hdr.classList.remove('scrolled') }
-        top.classList.toggle('show', y > 600)
+        tk = false; const y = scrollY;
+        if (!sc && y > 90) { sc = true; hdr.classList.add(cls) } else if (sc && y < 20) { sc = false; hdr.classList.remove(cls) }
+        const sh = y > 600; if (sh !== shown) { shown = sh; top.classList.toggle('show', sh) }
       };
-      addEventListener('scroll', on, { passive: true }); on();
+      addEventListener('scroll', () => { if (!tk) { tk = true; requestAnimationFrame(on) } }, { passive: true }); on();
       top.addEventListener('click', () => scrollTo({ top: 0, behavior: REDUCED.matches ? 'auto' : 'smooth' }));
       $('#f-mark').innerHTML = LOGO;
     })();
